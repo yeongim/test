@@ -502,25 +502,24 @@ for plate_coordinates, plate_info in grouped_results.items():
 
     # Plate 정보 출력
     for i, plate in enumerate(plate_info["plates"]):
-        print(f"{i + 1}\t{plate.get('label', '')}\t{plate.get('내용', '')}\t{plate['points'][0]}\t{plate['points'][1]}\t{plate['points'][2]}\t{plate['points'][3]}")
-     # 문자 정보 출력
+        print(f"{i + 1}\t{plate.get('label', '')}\t{plate.get('내용', '')}\t\t{plate['points'][0]}\t{plate['points'][1]}\t{plate['points'][2]}\t{plate['points'][3]}")
+
+    # 문자 정보 출력
     for i, char_entry in enumerate(plate_info["characters"]):
-         # char_entry가 None이 아니고, "points" 리스트가 비어있지 않은 경우에만 출력
-         if char_entry and "points" in char_entry and len(char_entry["points"]) >= 4:
-             print(f"{i + 1 + len(plate_info['plates']) + len(plate_info['numbers'])}\t{char_entry.get('label', '')}\t{char_entry.get('내용', '')}\t{char_entry['points'][0]}\t{char_entry['points'][1]}\t{char_entry['points'][2]}\t{char_entry['points'][3]}")
+        # char_entry가 None이 아니고, "points" 리스트가 비어있지 않은 경우에만 출력
+        if char_entry and "points" in char_entry and len(char_entry["points"]) >= 4:
+            print(f"{i + 1 + len(plate_info['plates'])}\t{char_entry.get('label', '')}\t{char_entry.get('내용', '')}\t\t{char_entry['points'][0]}\t{char_entry['points'][1]}\t{char_entry['points'][2]}\t{char_entry['points'][3]}")
+
     # 지역 정보 출력
     for i, region_entry in enumerate(plate_info["regions"]):
-        print(f"{i + 1 + len(plate_info['plates']) + len(plate_info['numbers']) + len(plate_info['characters'])}\t{region_entry.get('label', '')}\t{region_entry.get('내용', '')}\t{region_entry['points'][0]}\t{region_entry['points'][1]}\t{region_entry['points'][2]}\t{region_entry['points'][3]}")
-    
+        print(f"{i + 1 + len(plate_info['plates']) + len(plate_info['characters'])}\t{region_entry.get('label', '')}\t{region_entry.get('내용', '')}\t\t{region_entry['points'][0]}\t{region_entry['points'][1]}\t{region_entry['points'][2]}\t{region_entry['points'][3]}")
+
     # 숫자 정보 출력
     for i, number_entry in enumerate(plate_info["numbers"]):
-        print(f"{i + 1 + len(plate_info['plates'])}\t{number_entry.get('label', '')}\t{number_entry.get('내용', '')}\t{number_entry['points'][0]}\t{number_entry['points'][1]}\t{number_entry['points'][2]}\t{number_entry['points'][3]}")
-
-   
-
-    
+        print(f"{i + 1 + len(plate_info['plates']) + len(plate_info['characters']) + len(plate_info['regions'])}\t{number_entry.get('label', '')}\t{number_entry.get('내용', '')}\t\t{number_entry['points'][0]}\t{number_entry['points'][1]}\t{number_entry['points'][2]}\t{number_entry['points'][3]}")
 
     print()
+
              
 '''
                 # JSON 데이터 내의 각 항목에 대해 처리
@@ -710,4 +709,4 @@ def process_polygon_data(shapes):
 
             # 번호판 정보 출력
             print(f"번호판 정보: {formatted_plate}")
-'''        
+'''      
