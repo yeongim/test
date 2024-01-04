@@ -78,6 +78,8 @@ excluded_labels = {
     'plate': '번호판','human': '사람','helmet': '헬멧','kickboard': '킥보드'
 }
 
+
+
 # 함수: 번호판 정보 생성
 def generate_plate_info(shapes):
     label_parts = []  # 번호판 정보의 각 구성 요소를 저장하는 리스트
@@ -495,69 +497,85 @@ for file_name in file_list:
                 print("길이:", len(grouped_results))
                 print("그룹:", grouped_results)
 
-# 그룹핑된 결과 출력
+#그룹핑 결과
 for plate_coordinates, plate_info in grouped_results.items():
     # 숫자 정보를 y 좌표에 따라 정렬
-    plate_info["numbers"] = sorted(plate_info["numbers"], key=lambda x: x["points"][0][1])
+    sorted_numbers = sorted(plate_info["numbers"], key=lambda x: x["points"][0][1])
 
     # 가장 높은 위치에 있는 숫자 2개를 찾음 (y 좌표가 낮은 것부터)
-    top_two_numbers = [n for n in plate_info["numbers"][:2]]
+    top_two_numbers = sorted_numbers[:2]
 
+    # 가장 높은 위치에 있는 숫자 2개를 제외한 나머지 숫자
+    remaining_numbers = sorted_numbers[2:]
+
+    # 나머지 숫자에 대해서 y축 정렬
+    remaining_numbers_sorted_by_y = sorted(remaining_numbers, key=lambda x: x["points"][0][1])
+
+    # 나머지 숫자에 대해서 x축 정렬
+    remaining_numbers_sorted_by_x = sorted(remaining_numbers_sorted_by_y, key=lambda x: x["points"][0][0])
+    
     # 문자 정보를 저장할 리스트 초기화
     characters = plate_info["characters"]
+    
 
     print(f"Plate 좌표: {plate_coordinates}")
     print("NO\tLABEL\t내용\t\tP1\t\tP2\t\tP3\t\tP4")
 
+    # 지역 정보 출력
+    print("region_entry")
+    for i, region_entry in enumerate(plate_info["regions"]):
+        print(f"{i + 1}\t{region_entry.get('label', '')}\t{region_entry.get('내용', '')}\t\t{region_entry['points'][0]}\t{region_entry['points'][1]}\t{region_entry['points'][2]}\t{region_entry['points'][3]}")
+
     # Plate 정보 출력
     print("plate:")
     for i, plate in enumerate(plate_info["plates"]):
-        print(f"{i + 1}\t{plate.get('label', '')}\t{plate.get('내용', '')}\t\t{plate['points'][0]}\t{plate['points'][1]}\t{plate['points'][2]}\t{plate['points'][3]}")
+        print(f"{i + 1 + len(plate_info['regions'])}\t{plate.get('label', '')}\t{plate.get('내용', '')}\t\t{plate['points'][0]}\t{plate['points'][1]}\t{plate['points'][2]}\t{plate['points'][3]}")
 
     # 문자 정보 출력
     print("char_entry")
     for i, char_entry in enumerate(plate_info["characters"]):
         if char_entry and "points" in char_entry and len(char_entry["points"]) >= 4:
-            print(f"{i + 1 + len(plate_info['plates'])}\t{char_entry.get('label', '')}\t{char_entry.get('내용', '')}\t\t{char_entry['points'][0]}\t{char_entry['points'][1]}\t{char_entry['points'][2]}\t{char_entry['points'][3]}")
-
-    # 지역 정보 출력
-    print("region_entry")
-    for i, region_entry in enumerate(plate_info["regions"]):
-        print(f"{i + 1 + len(plate_info['plates']) + len(plate_info['characters'])}\t{region_entry.get('label', '')}\t{region_entry.get('내용', '')}\t\t{region_entry['points'][0]}\t{region_entry['points'][1]}\t{region_entry['points'][2]}\t{region_entry['points'][3]}")
+            print(f"{i + 1 + len(plate_info['regions']) + len(plate_info['plates'])}\t{char_entry.get('label', '')}\t{char_entry.get('내용', '')}\t\t{char_entry['points'][0]}\t{char_entry['points'][1]}\t{char_entry['points'][2]}\t{char_entry['points'][3]}")
 
     # 숫자 정보 출력
     print("number_entry")
-    for i, number_entry in enumerate(plate_info["numbers"]):
-        print(f"{i + 1 + len(plate_info['plates']) + len(plate_info['characters']) + len(plate_info['regions'])}\t{number_entry.get('label', '')}\t{number_entry.get('내용', '')}\t\t{number_entry['points'][0]}\t{number_entry['points'][1]}\t{number_entry['points'][2]}\t{number_entry['points'][3]}")
+    for i, number_entry in enumerate(remaining_numbers_sorted_by_x):  # 수정된 부분
+        print(f"{i + 1 + len(plate_info['regions']) + len(plate_info['plates']) + len(plate_info['characters'])}\t{number_entry.get('label', '')}\t{number_entry.get('내용', '')}\t\t{number_entry['points'][0]}\t{number_entry['points'][1]}\t{number_entry['points'][2]}\t{number_entry['points'][3]}")
 
-    # 좌표값 출력 후 결합된 정보 출력
+     # 좌표값 출력 후 결합된 정보 출력
     print("\ncombo")
 
+    # 결과를 담을 문자열 초기화
+    result_str = ""
+    
+    
     # 좌표값을 x축으로 정렬
     sorted_numbers = sorted(top_two_numbers, key=lambda x: x["points"][0][0])
     sorted_characters = sorted(characters, key=lambda x: x["points"][0][0])
+    
+    # 지역 정보 출력
+    region_str = ""
+    for i, region_entry in enumerate(plate_info["regions"]):
+    # 지역 코드를 지역명으로 변환
+        label = region_entry.get('label', '')
+        label = label_mapping.get(label, label)  # 지역 코드가 딕셔너리에 없으면 원래 코드를 그대로 사용
+        region_str += label
 
-    # 숫자들을 y축을 기준으로 정렬
-    #sorted_numbers = sorted(sorted_numbers, key=lambda x: x["points"][0][1])
-
+    # 결과를 담을 문자열 초기화
+    result_str = region_str
+    # 가장 높은 위치에 있는 숫자 2개 출력
     for number_entry in sorted_numbers:
-        print(f"{number_entry['points'][0]}\t{number_entry['points'][1]}\t{number_entry['points'][2]}\t{number_entry['points'][3]}")  # 좌표값 출력
-        print(number_entry["내용"])  # 숫자 정보 출력
-    for char_entry in sorted_characters:
-        print(f"{char_entry['points'][0]}\t{char_entry['points'][1]}\t{char_entry['points'][2]}\t{char_entry['points'][3]}")  # 좌표값 출력
-        print(char_entry["내용"])  # 문자 정보 출력
+        result_str += number_entry["내용"]
 
+    # 문자 정보 출력
+    for char_entry in sorted_characters:
+        result_str += char_entry["내용"]
+
+    # 나머지 숫자 정보 출력
+    for number_entry in remaining_numbers_sorted_by_x:
+        result_str += number_entry["내용"]
+    
+    print(result_str)
+    
     print()
-'''
-json 파일 내용안에 label에 type별로 정렬
-type1: h로 시작하는 지역명이 먼저오고 숫자2개, 문자, 숫자오게 정렬
-type3: 문자가 있는지 없는지 확인한 후 문자가 있으면 숫자 2개 뒤에 문자오게 정렬
-type4: y좌표값 큰순으로 정렬
-type5: v로 시작하는 지역명이 먼저오고 숫자2개,문자, 숫자오게 정렬
-type7: op 또는 지역명 뒤에 6이 있는 지역명은 앞으로 보내고 숫자 2개 뒤에 문자가 오게 정렬
-type8: 문자가 있는지 없는지 확인한 후 문자가 있으면 숫자 2개 뒤에 문자오게 정렬
-type9: 앞에 숫자 3개 뒤에 문자가 오게 정렬
-type11: 좌표값이 작은순서부터 큰순서 대로 정렬
-type12: 좌표값이 작은순서부터 큰순서 대로 정렬
-type13: h로 시작하는 지역명으 오고 그 뒤로 문자가 오게 정렬
-'''
+    
