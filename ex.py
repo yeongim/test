@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import shutil
- 
+import matplotlib.pyplot as plt
 
 # 경로 설정
 folder_path ="D:\새 폴더" # 폴더 경로
@@ -451,7 +451,7 @@ for file_name in file_list:
     if file_name.endswith(".json"):
         # JSON 파일을 처리하고 정보를 얻어옴
         points_and_labels = process_json_file(file_path)
-        print(f"points_and_labels:{points_and_labels}")
+        #print(f"points_and_labels:{points_and_labels}")
         # 얻어온 정보가 있는 경우
         if points_and_labels:
             # JSON 데이터로부터 번호판, 문자, 지역, 숫자 정보 추출
@@ -494,28 +494,102 @@ for file_name in file_list:
                     if overlap:
                         grouped_results[plate_coordinates]["regions"].append(region_entry)
                         
-                print("길이:", len(grouped_results))
-                print("그룹:", grouped_results)
+                #print("길이:", len(grouped_results))
+                #print("그룹:", grouped_results)
+'''
+ plate_coordinates는 plate 좌표
+ plate_info 번호판 좌표
+'''
+
+# 점과 직선사이의 거리 계산
+def calculate_distance(point, line_params):
+    # line_params는 (a, b, c) 형태의 튜플이며, ax + by + c = 0 형태의 직선을 나타냅니다.
+    a, b, c = line_params # line_params에서 값을 추출하는 데 사용된다. 
+                          # 변수 line_params는 ax + by + c = 0 형태의 직선의 매개 변수를 나타내는 세 요소를 포함하는 튜플. 
+                          # 튜플을 a, b, 및 c로 추출함으로써 직선 방정식의 개별 계수가 변수에 할당되어 나중에 사용.
+    x1, y1 = point # 튜플 point에서 값을 추출하는 데 사용. 
+                   # 변수 point는 (x, y) 형태의 좌표를 나타내는 두 요소를 포함하는 튜플. 
+                   # 튜플을 x1 및 y1로 추출함으로써 점의 개별 좌표가 변수에 할당
+    # 점 (x0, y0)과 직선 ax + by + c = 0 사이의 거리 계산
+    distance = abs(a * x1 + b * y1 + c) / np.sqrt(a**2 + b**2)
+    return distance
 
 #그룹핑 결과
+characters = []
+
 for plate_coordinates, plate_info in grouped_results.items():
     # 숫자 정보를 y 좌표에 따라 정렬
     sorted_numbers = sorted(plate_info["numbers"], key=lambda x: x["points"][0][1])
 
-    # 가장 높은 위치에 있는 숫자 2개를 찾음 (y 좌표가 낮은 것부터)
-    top_two_numbers = sorted_numbers[:2]
-
-    # 가장 높은 위치에 있는 숫자 2개를 제외한 나머지 숫자
-    remaining_numbers = sorted_numbers[2:]
-
-    # 나머지 숫자에 대해서 y축 정렬
-    remaining_numbers_sorted_by_y = sorted(remaining_numbers, key=lambda x: x["points"][0][1])
-
-    # 나머지 숫자에 대해서 x축 정렬
-    remaining_numbers_sorted_by_x = sorted(remaining_numbers_sorted_by_y, key=lambda x: x["points"][0][0])
+    # 숫자 정보 원점 계산
+    # np.mean([num_entry['points'][i][0] for i in range(4)])는 num_entry 딕셔너리 안의 points 리스트에 있는 x 좌표들의 평균을 계산하고, 
+    # np.mean([num_entry['points'][i][1] for i in range(4)])는 y 좌표들의 평균을 계산한다. 
+    # 이렇게 함으로써 각 숫자의 네 개의 좌표에 대한 중간 지점 좌표를 구할 수 있다.
+    num_mid_points = [
+    (np.mean([num_entry['points'][i][0] for i in range(4)]), np.mean([num_entry['points'][i][1] for i in range(4)]))
+    for num_entry in plate_info["numbers"]
+    ]
     
+    # 각 번호의 모든 좌표를 모아둔 리스트
+    all_points = [point for num in sorted_numbers for point in num['points']]
+    
+    if len(num_mid_points) >= 2: # 최소한 2개 이상의 숫자가 있다는 조건을 설정 중심점이 있어야 직선을 만들 수 있기 때문
+        x1, y1 = num_mid_points[0]
+        x2, y2 = num_mid_points[1]
+    
+        # 직선의 매개변수 a, b, c를 계산합니다.
+        a = y2 - y1
+        b = -(x2 - x1)
+        c = -(a * x1 + b * y1)
+
+        # 직선을 그리기 위한 x 값 생성
+        x_values = np.linspace(min(x1, x2), max(x1, x2), 100)
+        y_values = (-a * x_values - c) / b
+        
+        # 두 점을 잇는 직선 플로팅
+        plt.plot(x_values, y_values, label='Line through points')
+        
+        # 두 점 표시
+        plt.scatter([x1, x2], [y1, y2], color='red', label='Mid points')
+        
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.title('Line Through Mid Points')
+        plt.legend()
+        plt.show()
+        
+
+        margin = 6  # 마진 값 설정.
+    
+        # all_points에 있는 모든 점에 대해 거리를 계산합니다.
+        # 각 숫자의 좌표(all_points)에 대해 계산된 직선과의 거리를 구하는 과정. 
+        # calculate_distance 함수가 사용되어 각 좌표와 직선 사이의 거리를 계산하고, 이 거리들을 리스트로 저장한 것
+        # x와 y는 점의 좌표, a와 b는 직선의 기울기, c는 y절편
+        distances = [calculate_distance(point, (a, b, c)) for point in all_points]
+        
+        average_distance = np.mean(distances)
+        print("평균거리", average_distance)
+        threshold = 5
+        
+        # 평균 거리가 임계값에 마진을 더한 값보다 작으면 두 번호는 같은 줄에 있다고 판단. 그렇지 않으면 다른 줄에 있을 수 있다.
+        # 마진 적용
+        if average_distance < threshold + margin:  # 평균 거리가 임곗값 + 마진보다 작으면 같은 줄에 있다고 판단
+            print('번호는 같은 줄에 있습니다.')
+        else:
+            print('번호는 다른 줄에 있을 수 있습니다.')
+        
+    # 문자 정보를 x 좌표에 따라 정렬
+    sorted_characters = sorted(plate_info["characters"], key=lambda x: np.mean([point[0] for point in x["points"]]))
+
+       
+    # 숫자 정보를 x 좌표에 따라 정렬
+    sorted_numbers = sorted(plate_info["numbers"], key=lambda x: np.mean([point[0] for point in x["points"]]))
+
     # 문자 정보를 저장할 리스트 초기화
     characters = plate_info["characters"]
+    
+    # 문자와 숫자 정보를 합칩니다.
+    all_entries = plate_info["characters"] + plate_info["numbers"]
     
 
     print(f"Plate 좌표: {plate_coordinates}")
@@ -527,55 +601,33 @@ for plate_coordinates, plate_info in grouped_results.items():
         print(f"{i + 1}\t{region_entry.get('label', '')}\t{region_entry.get('내용', '')}\t\t{region_entry['points'][0]}\t{region_entry['points'][1]}\t{region_entry['points'][2]}\t{region_entry['points'][3]}")
 
     # Plate 정보 출력
-    print("plate:")
     for i, plate in enumerate(plate_info["plates"]):
-        print(f"{i + 1 + len(plate_info['regions'])}\t{plate.get('label', '')}\t{plate.get('내용', '')}\t\t{plate['points'][0]}\t{plate['points'][1]}\t{plate['points'][2]}\t{plate['points'][3]}")
+        points = plate['points']
+        height = max(points[0][1], points[1][1], points[2][1], points[3][1]) - min(points[0][1], points[1][1], points[2][1], points[3][1])
+        print(f"{i + 1}\t{plate.get('label', '')}\t{plate.get('내용', '')}\t\t{points[0]}\t{points[1]}\t{points[2]}\t{points[3]}")
 
-    # 문자 정보 출력
-    print("char_entry")
-    for i, char_entry in enumerate(plate_info["characters"]):
-        if char_entry and "points" in char_entry and len(char_entry["points"]) >= 4:
-            print(f"{i + 1 + len(plate_info['regions']) + len(plate_info['plates'])}\t{char_entry.get('label', '')}\t{char_entry.get('내용', '')}\t\t{char_entry['points'][0]}\t{char_entry['points'][1]}\t{char_entry['points'][2]}\t{char_entry['points'][3]}")
-
-    # 숫자 정보 출력
-    print("number_entry")
-    for i, number_entry in enumerate(remaining_numbers_sorted_by_x):  # 수정된 부분
-        print(f"{i + 1 + len(plate_info['regions']) + len(plate_info['plates']) + len(plate_info['characters'])}\t{number_entry.get('label', '')}\t{number_entry.get('내용', '')}\t\t{number_entry['points'][0]}\t{number_entry['points'][1]}\t{number_entry['points'][2]}\t{number_entry['points'][3]}")
-
-     # 좌표값 출력 후 결합된 정보 출력
+    for i, entry in enumerate(all_entries):
+        print(f"{i + 1}\t{entry.get('label', '')}\t{entry.get('내용', '')}\t\t{entry['points'][0]}\t{entry['points'][1]}\t{entry['points'][2]}\t{entry['points'][3]}")
+    
+    # 좌표값 출력 후 결합된 정보 출력
     print("\ncombo")
-
+    
     # 결과를 담을 문자열 초기화
     result_str = ""
     
-    
-    # 좌표값을 x축으로 정렬
-    sorted_numbers = sorted(top_two_numbers, key=lambda x: x["points"][0][0])
-    sorted_characters = sorted(characters, key=lambda x: x["points"][0][0])
-    
     # 지역 정보 출력
     region_str = ""
-    for i, region_entry in enumerate(plate_info["regions"]):
-    # 지역 코드를 지역명으로 변환
+    for region_entry in plate_info["regions"]:
         label = region_entry.get('label', '')
-        label = label_mapping.get(label, label)  # 지역 코드가 딕셔너리에 없으면 원래 코드를 그대로 사용
-        region_str += label
-
-    # 결과를 담을 문자열 초기화
-    result_str = region_str
-    # 가장 높은 위치에 있는 숫자 2개 출력
-    for number_entry in sorted_numbers:
-        result_str += number_entry["내용"]
-
-    # 문자 정보 출력
-    for char_entry in sorted_characters:
-        result_str += char_entry["내용"]
-
-    # 나머지 숫자 정보 출력
-    for number_entry in remaining_numbers_sorted_by_x:
-        result_str += number_entry["내용"]
+        region_str += label_mapping.get(label, label)  # 지역 코드가 딕셔너리에 없으면 원래 코드를 그대로 사용
+    
+    # 정렬된 전체 항목을 사용하여 결과 문자열을 만듭니다.
+    for entry in all_entries:
+        result_str += entry["내용"]
+    
+    # 마지막에 원하는 순서로 출력
+    result_str = region_str + result_str
     
     print(result_str)
     
     print()
-    
